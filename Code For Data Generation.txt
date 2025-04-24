@@ -1,0 +1,92 @@
+import numpy as np
+import pandas as pd
+from itertools import combinations
+# Define normal ranges for each parameter
+ranges = {
+"Glucose": (70, 140),
+"Cholesterol": (125, 200),
+"Hemoglobin": (13.5, 17.5),
+"Platelets": (150000, 450000),
+"White Blood Cells": (4000, 11000),
+"Red Blood Cells": (4.2, 5.4),
+"Hematocrit": (38, 52),
+"Mean Corpuscular Volume": (80, 100),
+"Mean Corpuscular Hemoglobin": (27, 33),
+"Mean Corpuscular Hemoglobin Concentration": (32, 36),
+"Insulin": (5, 25),
+"BMI": (18.5, 24.9),
+"Systolic Blood Pressure": (90, 120),
+"Diastolic Blood Pressure": (60, 80),
+"Triglycerides": (50, 150),
+"HbA1c": (4, 6),
+"LDL Cholesterol": (70, 130),
+"HDL Cholesterol": (40, 60),
+"ALT": (10, 40),
+"AST": (10, 40),
+"Heart Rate": (60, 100),
+"Creatinine": (0.6, 1.2),
+"Troponin": (0, 0.04),
+"C-reactive Protein": (0, 3),
+}
+# Disease conditions
+conditions = {
+"Diabetes": {"Glucose": (140, 250), "HbA1c": (6.5, 12), "Insulin": (25, 50), "Triglycerides": (150, 300), "BMI": (25, 35), "Systolic Blood Pressure": (120, 160)},
+"Thalassemia": {"Hemoglobin": (6, 10), "Mean Corpuscular Volume": (60, 75), "Mean Corpuscular Hemoglobin": (20, 26), "Mean Corpuscular Hemoglobin Concentration": (28, 32), "Hematocrit": (25, 35)},
+"Anemia": {"Hemoglobin": (6, 11), "Hematocrit": (25, 35), "Red Blood Cells": (3, 4.2), "Mean Corpuscular Volume": (70, 85), "Mean Corpuscular Hemoglobin": (24, 30), "Mean Corpuscular Hemoglobin Concentration": (30, 34)},
+"Thrombocytopenia": {"Platelets": (50000, 140000), "White Blood Cells": (3000, 9000), "ALT": (30, 60), "AST": (30, 60), "C-reactive Protein": (3, 10)},
+"Hypercholesterolemia": {"Cholesterol": (200, 300), "LDL Cholesterol": (130, 200), "HDL Cholesterol": (20, 40), "Triglycerides": (150, 300)},
+"Hypertension": {"Systolic Blood Pressure": (130, 180), "Diastolic Blood Pressure": (85, 120), "Heart Rate": (80, 120)},
+"Coronary Artery Disease": {"LDL Cholesterol": (130, 200), "HDL Cholesterol": (20, 40), "Triglycerides": (200, 400), "C-reactive Protein": (5, 10)},
+"Liver Disease": {"ALT": (40, 100), "AST": (40, 100), "Platelets": (100000, 300000), "C-reactive Protein": (5, 15)},
+"Kidney Disease": {"Creatinine": (1.2, 5), "Red Blood Cells": (3, 4.2), "Hematocrit": (25, 35)},
+"Heart Attack Risk": {"Troponin": (0.04, 10), "C-reactive Protein": (5, 20), "LDL Cholesterol": (150, 250), "HDL Cholesterol": (20, 40)},
+}
+# Generate all possible disease combinations + Healthy
+def generate_all_combinations():
+diseases = list(conditions.keys())
+all_combinations = [()] # Empty tuple for healthy individuals
+for r in range(1, len(diseases) + 1):
+for combo in combinations(diseases, r):
+all_combinations.append(combo)
+return all_combinations
+# Gender-based criteria adjustments
+def adjust_for_gender(gender, parameter, value):
+if gender == "Male":
+if parameter == "Hemoglobin":
+return value + 0.5
+if parameter == "Red Blood Cells":
+return value + 0.2
+elif gender == "Female":
+if parameter == "Hemoglobin":
+return value - 0.5
+if parameter == "Red Blood Cells":
+return value - 0.2
+return value
+# Generate dataset with all disease combinations + Healthy
+def generate_stratified_data(n=5000):
+data = []
+all_disease_combinations = generate_all_combinations()
+for combo in all_disease_combinations:
+for _ in range(n // len(all_disease_combinations)): # Ensure fair representation
+gender = np.random.choice(["Male", "Female"])
+disease_str = "Healthy" if len(combo) == 0 else " & ".join(combo)
+sample = {"Gender": gender, "Disease": disease_str}
+for key, (low, high) in ranges.items():
+assigned = False
+for disease in combo:
+if key in conditions[disease]:
+d_low, d_high = conditions[disease][key]
+sample[key] = np.random.uniform(d_low, d_high)
+assigned = True
+break
+if not assigned:
+# Healthy individuals always fall within the normal range
+value = np.random.uniform(low, high) if disease_str != "Healthy" else np.random.uniform(low, high)
+sample[key] = adjust_for_gender(gender, key, value)
+data.append(sample)
+return pd.DataFrame(data)
+# Generate and save the dataset
+df = generate_stratified_data()
+df.to_csv("medical_data_with_healthy2.csv", index=False)
+print("Dataset saved: medical_data_with_healthy2.csv")
+print(df.head()) # Preview some data
